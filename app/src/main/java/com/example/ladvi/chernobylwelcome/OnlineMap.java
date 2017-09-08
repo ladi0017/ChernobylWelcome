@@ -26,6 +26,7 @@ import com.mapbox.mapboxsdk.maps.MapView;
 import com.mapbox.mapboxsdk.maps.MapboxMap;
 import com.mapbox.mapboxsdk.maps.OnMapReadyCallback;
 import com.mapbox.services.android.telemetry.location.LocationEngine;
+import com.mapbox.services.android.telemetry.location.LocationEngineListener;
 import com.mapzen.android.lost.api.LocationListener;
 import com.mapzen.android.lost.api.LocationServices;
 
@@ -34,12 +35,10 @@ import com.mapzen.android.lost.api.LocationServices;
  */
 
 
-
 public class OnlineMap extends AppCompatActivity {
 
     private MapView mapView;
     private MapboxMap map;
-    private LocationServices locationServices;
     private LocationEngine locationEngine;
     private FloatingActionButton floatingActionButton;
 
@@ -57,7 +56,6 @@ public class OnlineMap extends AppCompatActivity {
 
         mapView = (MapView) findViewById(R.id.mapView);
         mapView.onCreate(savedInstanceState);
-
         mapView.getMapAsync(new OnMapReadyCallback() {
             @Override
             public void onMapReady(MapboxMap mapboxMap) {
@@ -65,9 +63,9 @@ public class OnlineMap extends AppCompatActivity {
 
                 IconFactory iconFactory = IconFactory.getInstance(OnlineMap.this);
                 Icon icon1 = iconFactory.fromResource(R.drawable.green);
-                Icon icon2 = iconFactory.fromResource(R.drawable.yel);;
+                Icon icon2 = iconFactory.fromResource(R.drawable.yel);
                 Icon icon3 = iconFactory.fromResource(R.drawable.red);
-                Icon icon4 = iconFactory.fromResource(R.drawable.white);;
+                Icon icon4 = iconFactory.fromResource(R.drawable.white);
 
                 mapboxMap.addMarker(new MarkerOptions()
                         .position(new LatLng(51.406145, 30.057325))
@@ -108,19 +106,27 @@ public class OnlineMap extends AppCompatActivity {
         });
 
 
-
-
     }
 
     private void enableLocation(boolean enabled) {
         if (enabled) {
             // If we have the last location of the user, we can move the camera to that position.
-            Location lastLocation = locationServices.getLastLocation();
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, new String[]{
+                        Manifest.permission.ACCESS_COARSE_LOCATION,
+                        Manifest.permission.ACCESS_FINE_LOCATION}, PERMISSIONS_LOCATION);
+            }
+            Location lastLocation = locationEngine.getLastLocation();
             if (lastLocation != null) {
                 map.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(lastLocation), 16));
             }
 
-            locationServices.addLocationListener(new LocationListener() {
+            locationEngine.addLocationEngineListener(new LocationEngineListener() {
+                @Override
+                public void onConnected() {
+
+                }
+
                 @Override
                 public void onLocationChanged(Location location) {
                     if (location != null) {
@@ -129,7 +135,7 @@ public class OnlineMap extends AppCompatActivity {
                         // changes. When the user disables and then enables the location again, this
                         // listener is registered again and will adjust the camera once again.
                         map.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(location), 16));
-                        locationServices.removeLocationListener(this);
+                        locationEngine.removeLocationEngineListener(this);
                     }
                 }
             });
@@ -145,7 +151,7 @@ public class OnlineMap extends AppCompatActivity {
     private void toggleGps(boolean enableGps) {
         if (enableGps) {
             // Check if user has granted location permission
-            if (!locationServices.areLocationPermissionsGranted()) {
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                 ActivityCompat.requestPermissions(this, new String[]{
                         Manifest.permission.ACCESS_COARSE_LOCATION,
                         Manifest.permission.ACCESS_FINE_LOCATION}, PERMISSIONS_LOCATION);
