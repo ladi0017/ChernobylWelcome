@@ -3,6 +3,7 @@ package com.example.ladvi.chernobylwelcome;
 /**
  * Created by ladvi on 04/01/2017.
  */
+
 import android.Manifest;
 import android.content.pm.PackageManager;
 import android.graphics.drawable.Drawable;
@@ -19,7 +20,6 @@ import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import com.mapbox.mapboxsdk.Mapbox;
-import com.mapbox.mapboxsdk.MapboxAccountManager;
 import com.mapbox.mapboxsdk.annotations.Icon;
 import com.mapbox.mapboxsdk.annotations.IconFactory;
 import com.mapbox.mapboxsdk.annotations.MarkerOptions;
@@ -36,6 +36,7 @@ import com.mapbox.mapboxsdk.offline.OfflineRegionError;
 import com.mapbox.mapboxsdk.offline.OfflineRegionStatus;
 import com.mapbox.mapboxsdk.offline.OfflineTilePyramidRegionDefinition;
 import com.mapbox.services.android.telemetry.location.LocationEngine;
+import com.mapbox.services.android.telemetry.location.LocationEngineListener;
 import com.mapzen.android.lost.api.LocationServices;
 
 import org.json.JSONObject;
@@ -52,7 +53,7 @@ public class OfflineMap extends AppCompatActivity {
     private MapboxMap map;
     private FloatingActionButton floatingActionButton;
     private LocationServices locationServices;
-
+    private LocationEngine locationEngine;
 
     public static final String JSON_CHARSET = "UTF-8";
     public static final String JSON_FIELD_REGION_NAME = "FIELD_REGION_NAME";
@@ -67,9 +68,7 @@ public class OfflineMap extends AppCompatActivity {
 
         setContentView(R.layout.offlinemap);
 
-        locationServices = LocationServices.getLocationServices(OfflineMap.this);
-
-        LocationEngine locationEngine = LocationSource.getLocationEngine(this);
+        locationEngine = LocationSource.getLocationEngine(this);
 
         mapView = (MapView) findViewById(R.id.mapView);
         mapView.onCreate(savedInstanceState);
@@ -84,7 +83,7 @@ public class OfflineMap extends AppCompatActivity {
                         .build();
 
                 OfflineTilePyramidRegionDefinition definition = new OfflineTilePyramidRegionDefinition(
-                        mapView.getStyleUrl(),
+                        mapboxMap.getStyleUrl(),
                         latLngBounds,
                         10,
                         20,
@@ -147,14 +146,10 @@ public class OfflineMap extends AppCompatActivity {
                 map = mapboxMap;
 
                 IconFactory iconFactory = IconFactory.getInstance(OfflineMap.this);
-                Drawable icon1Drawable = ContextCompat.getDrawable(OfflineMap.this, R.drawable.white);
-                Drawable icon2Drawable = ContextCompat.getDrawable(OfflineMap.this, R.drawable.green);
-                Drawable icon3Drawable = ContextCompat.getDrawable(OfflineMap.this, R.drawable.yel);
-                Drawable icon4Drawable = ContextCompat.getDrawable(OfflineMap.this, R.drawable.red);
-                Icon icon1 = iconFactory.fromDrawable(icon1Drawable);
-                Icon icon2 = iconFactory.fromDrawable(icon2Drawable);
-                Icon icon3 = iconFactory.fromDrawable(icon3Drawable);
-                Icon icon4 = iconFactory.fromDrawable(icon4Drawable);
+                Icon icon1 = iconFactory.fromResource(R.drawable.white);
+                Icon icon2 = iconFactory.fromResource(R.drawable.green);
+                Icon icon3 = iconFactory.fromResource(R.drawable.yel);
+                Icon icon4 = iconFactory.fromResource(R.drawable.red);
 
                 mapboxMap.addMarker(new MarkerOptions()
                         .position(new LatLng(51.406145, 30.057325))
@@ -197,18 +192,27 @@ public class OfflineMap extends AppCompatActivity {
 
     private void enableLocation(boolean enabled) {
         if (enabled) {
-            Location lastLocation = locationServices.getLastLocation();
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, new String[]{
+                        Manifest.permission.ACCESS_COARSE_LOCATION,
+                        Manifest.permission.ACCESS_FINE_LOCATION}, PERMISSIONS_LOCATION);
+            }
+            Location lastLocation = locationEngine.getLastLocation();
             if (lastLocation != null) {
                 map.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(lastLocation), 16));
             }
+            locationEngine.addLocationEngineListener(new LocationEngineListener() {
+                @Override
+                public void onConnected() {
 
-            locationServices.addLocationListener(new LocationListener() {
+                }
+
                 @Override
                 public void onLocationChanged(Location location) {
                     if (location != null) {
 
                         map.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(location), 16));
-                        locationServices.removeLocationListener(this);
+                        locationEngine.removeLocationEngineListener(this);
                     }
                 }
             });
@@ -221,7 +225,7 @@ public class OfflineMap extends AppCompatActivity {
 
     private void toggleGps(boolean enableGps) {
         if (enableGps) {
-            if (!locationServices.areLocationPermissionsGranted()) {
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                 ActivityCompat.requestPermissions(this, new String[]{
                         Manifest.permission.ACCESS_COARSE_LOCATION,
                         Manifest.permission.ACCESS_FINE_LOCATION}, PERMISSIONS_LOCATION);
