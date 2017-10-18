@@ -5,6 +5,7 @@ package com.example.ladvi.chernobylwelcome;
  */
 
 import android.Manifest;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.drawable.Drawable;
 import android.location.Location;
@@ -23,6 +24,8 @@ import com.mapbox.mapboxsdk.Mapbox;
 import com.mapbox.mapboxsdk.annotations.Icon;
 import com.mapbox.mapboxsdk.annotations.IconFactory;
 import com.mapbox.mapboxsdk.annotations.MarkerOptions;
+import com.mapbox.mapboxsdk.camera.CameraPosition;
+import com.mapbox.mapboxsdk.camera.CameraUpdate;
 import com.mapbox.mapboxsdk.camera.CameraUpdateFactory;
 import com.mapbox.mapboxsdk.geometry.LatLng;
 import com.mapbox.mapboxsdk.geometry.LatLngBounds;
@@ -144,7 +147,6 @@ public class OfflineMap extends AppCompatActivity {
                             }
                         });
                 map = mapboxMap;
-
                 IconFactory iconFactory = IconFactory.getInstance(OfflineMap.this);
                 Icon icon1 = iconFactory.fromResource(R.drawable.white);
                 Icon icon2 = iconFactory.fromResource(R.drawable.green);
@@ -175,9 +177,20 @@ public class OfflineMap extends AppCompatActivity {
                         .snippet("Contaminated place,dont stay long. Readigs up to 400 microsiev/h"))
                         .setIcon(icon3);
 
-
+                Intent intent = getIntent();
+                double intentLat = -1;
+                intentLat = intent.getDoubleExtra("lat", intentLat);
+                double intentLng = -1;
+                intentLng = intent.getDoubleExtra("lng", intentLng);
+                if (intentLat != -1)
+                {
+                    CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngZoom(new LatLng(intentLat, intentLng), 12);
+                    mapboxMap.setCameraPosition(cameraUpdate.getCameraPosition(mapboxMap));
+                }
             }
         });
+
+
 
         floatingActionButton = (FloatingActionButton) findViewById(R.id.location_toggle_fab);
         floatingActionButton.setOnClickListener(new View.OnClickListener() {
